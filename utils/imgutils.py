@@ -92,10 +92,12 @@ def crop_norescale(img, ele_anno):
     ary_pts = np.array(ele_anno['joint_self'])  # (16, 3)
     ary_pts_temp = ary_pts[np.any(ary_pts > [0, 0, 0], axis=1)]
 
-    W_min = max(np.amin(ary_pts_temp, axis=0)[0] - s * 10, 0)
-    H_min = max(np.amin(ary_pts_temp, axis=0)[1] - s * 10, 0)
-    W_max = min(np.amax(ary_pts_temp, axis=0)[0] + s * 10, W)
-    H_max = min(np.amax(ary_pts_temp, axis=0)[1] + s * 10, H)
+    scale_rand = np.random.uniform(low=1.0, high=3.0)
+
+    W_min = max(np.amin(ary_pts_temp, axis=0)[0] - s * 15 * scale_rand, 0)
+    H_min = max(np.amin(ary_pts_temp, axis=0)[1] - s * 15 * scale_rand, 0)
+    W_max = min(np.amax(ary_pts_temp, axis=0)[0] + s * 15 * scale_rand, W)
+    H_max = min(np.amax(ary_pts_temp, axis=0)[1] + s * 15 * scale_rand, H)
 
     W_len = W_max - W_min
     H_len = H_max - H_min
@@ -115,7 +117,7 @@ def crop_norescale(img, ele_anno):
     c_crop = c - np.array([W_low, H_low])
 
     img_crop = img[int(H_low):int(H_high), int(W_low):int(W_high), :]
-    print('img_crop.SHAPE', img_crop.shape)
+    # print('img_crop.SHAPE', img_crop.shape)
 
 
     # Pad when H, W different
@@ -153,7 +155,7 @@ def change_resolu(img, pts, c, resolu_out=(256,256)):
     pts_out = pts/np.array([W_scale, H_scale, 1])
     c_out = c/np.array([W_scale, H_scale])
     img_out = skimage.transform.resize(img, tuple(resolu_out))
-    print('img_out.SHAPE', img_out.shape)
+    # print('img_out.SHAPE', img_out.shape)
     return img_out, pts_out, c_out
 
 def random_rotate(img, resolu_out=(256,256)):
