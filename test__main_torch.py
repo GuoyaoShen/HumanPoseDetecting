@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import json
 import os
+import math
 
 from utils import imgutils
 from utils import imgutilsTF
@@ -18,7 +19,7 @@ from models.hourglass_new import Residual, HourGlass, HourGlassNet, hg
 from models.hourglass import hg as hg_torch
 from losses.jointMSE import mse_joint as jMSE
 from losses.jointsmseloss import JointsMSELoss
-from datasets.dataset_torch import DatasetTorch
+from datasets.dataset_torch_new import DatasetTorch
 
 import os
 # os.environ["CUDA_VISIBLE_DEVICES"] = "1"
@@ -33,7 +34,7 @@ num_subset = 1
 
 
 # ================================== Construct dataset ==================================
-ds_torch = DatasetTorch(num_subset=num_subset)
+ds_torch = DatasetTorch()
 data_loader = datatorch.DataLoader(ds_torch, batch_size=32, shuffle=True)
 
 
@@ -50,8 +51,11 @@ criteon = JointsMSELoss(use_target_weight=True).to(device)
 
 # ================================== Train ==================================
 num_epoch = 10
+num_setsize = ds_torch.__len__()
+print('num_setsize', num_setsize)
 target_weight = torch.ones(1, 16)
 
+plt.ion()
 for i in range(num_epoch):
     for step, (img, heatmaps, pts) in enumerate(data_loader):
         # To GPU
@@ -62,15 +66,32 @@ for i in range(num_epoch):
 
 
         print('')
-        print('EPOCH', str(num_epoch), '/', i+1, ' ||  STEP 32 /', step + 1)
+        print('EPOCH', str(num_epoch), '/', i+1, ' ||  STEP', math.ceil(num_setsize/32), '/', step + 1)
         heatmaps_pred = net_hg_torch(img)
         heatmaps_pred = heatmaps_pred[-1]
+
+        heatmaps_pred_copy = heatmaps_pred[1]
+        img_copy = img[1]
+
         loss = criteon(heatmaps_pred, heatmaps, target_weight)
         print('LOSS:', loss)
 
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+
+        # Show pred heatmaps
+        heatmaps_pred_np = heatmaps_pred_copy.detach().numpy()
+        # heatmaps_pred_np = np.squeeze(heatmaps_pred_np, axis=0)
+        heatmaps_pred_np = np.swapaxes(np.swapaxes(heatmaps_pred_np, 0, 2), 0, 1)  # (64,64,16)
+        img_np = img_copy.detach().numpy()
+        # img_np = np.squeeze(img_np, axis=0)
+        img_np = np.swapaxes(np.swapaxes(img_np, 0, 2), 0, 1)  # (64,64,16)
+        imgutils.show_heatmaps(img_np, heatmaps_pred_np)
+        plt.pause(1)
+plt.ioff()
+
+
 
         # if step > 5:
         #     break
