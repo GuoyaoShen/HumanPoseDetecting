@@ -73,7 +73,7 @@ def crop(img, ele_anno):
     img_crop = img[int(H_min):int(H_max), int(W_min):int(W_max), :]
     return img_crop, ary_pts_crop, c_crop
 
-def crop_norescale(img, ele_anno):
+def crop_norescale(img, ele_anno, use_randscale=True):
     '''
     :param img: np array of the origin image
     :param ele_anno:
@@ -88,21 +88,21 @@ def crop_norescale(img, ele_anno):
     if c[0] != -1:
         c[1] = c[1] + 15 * s
         s = s * 1.25
-
     ary_pts = np.array(ele_anno['joint_self'])  # (16, 3)
     ary_pts_temp = ary_pts[np.any(ary_pts > [0, 0, 0], axis=1)]
 
-    scale_rand = np.random.uniform(low=1.0, high=3.0)
+    if use_randscale:
+        scale_rand = np.random.uniform(low=1.0, high=3.0)
+    else:
+        scale_rand = 1
 
     W_min = max(np.amin(ary_pts_temp, axis=0)[0] - s * 15 * scale_rand, 0)
     H_min = max(np.amin(ary_pts_temp, axis=0)[1] - s * 15 * scale_rand, 0)
     W_max = min(np.amax(ary_pts_temp, axis=0)[0] + s * 15 * scale_rand, W)
     H_max = min(np.amax(ary_pts_temp, axis=0)[1] + s * 15 * scale_rand, H)
-
     W_len = W_max - W_min
     H_len = H_max - H_min
     window_len = max(H_len, W_len)
-
     pad_updown = (window_len - H_len)/2
     pad_leftright = (window_len - W_len)/2
 
@@ -118,7 +118,6 @@ def crop_norescale(img, ele_anno):
 
     img_crop = img[int(H_low):int(H_high), int(W_low):int(W_high), :]
     # print('img_crop.SHAPE', img_crop.shape)
-
 
     # Pad when H, W different
     H_new, W_new = img_crop.shape[0], img_crop.shape[1]
