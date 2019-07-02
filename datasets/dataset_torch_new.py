@@ -1,3 +1,7 @@
+'''
+Coding by GuoyaoShen
+https://github.com/GuoyaoShen/HumanPoseDetecting
+'''
 import numpy as np
 import torch
 import torch.utils.data as datatorch
@@ -46,14 +50,15 @@ class DatasetTorch(datatorch.Dataset):
         train_pts = pts_out[:, :2].astype(np.int32) - np.ones((16, 2))
 
         # (H,W,C) -> (C,H,W)
-        train_img = np.swapaxes(np.swapaxes(train_img, 0, 2), 1, 2)
-        train_heatmap = np.swapaxes(np.swapaxes(train_heatmap, 0, 2), 1, 2)
+        train_img = np.transpose(train_img, (2, 0, 1))
+        train_heatmap = np.transpose(train_heatmap, (2, 0, 1))
 
         if self.use_flip:
             train_img, train_heatmap, train_pts = random_flip_LR(train_img, train_heatmap, train_pts)
         if self.use_rand_scale:
             train_img, train_heatmap, train_pts = random_scale(train_img, train_heatmap, train_pts)
         return train_img, train_heatmap, train_pts
+        # return np.zeros((3, 256, 256)), np.zeros((16, 64, 64)), train_pts
 
     def __len__(self):
         if self.is_trian:
@@ -67,28 +72,27 @@ def random_flip_LR(img, heatmaps, pts):
     :param heatmaps: shape(16,64,64), np array
     :param pts: shape(16,2), np array, same resolu as heatmaps
     :return: same as input
+
+    When flip, the order of heatmaps also need to change.
     '''
     H_img, W_img = img.shape[1], img.shape[2]
     H_hm, W_hm = heatmaps.shape[1], heatmaps.shape[2]
     flip = np.random.random() > 0.5
+    flip = True
     # print('FLIP:', flip)
     if not flip:
         return img, heatmaps, pts
-    #! pytorch not supported negative stride for now
-    # img = img[:, :, ::-1]
-    # heatmaps = heatmaps[:, :, ::-1]
-
-    # (C,H,W) -> (H,W,C)
-    img = np.swapaxes(np.swapaxes(img, 0, 2), 0, 1)
-    heatmaps = np.swapaxes(np.swapaxes(heatmaps, 0, 2), 0, 1)
-    img = cv2.flip(img, 1)
-    heatmaps = cv2.flip(heatmaps, 1)
-    # (H,W,C) -> (C,H,W)
-    img = np.swapaxes(np.swapaxes(img, 0, 2), 1, 2)
-    heatmaps = np.swapaxes(np.swapaxes(heatmaps, 0, 2), 1, 2)
+    #! pytorch not supported negative stride for now, use copy()
+    # (C,H,W)
+    img = np.flip(img, 2).copy()
+    heatmaps = np.flip(heatmaps, 2).copy()
+    # Rearrange heatmaps
+    heatmaps = np.concatenate((heatmaps[5::-1], heatmaps[6:10], heatmaps[15:9:-1])).copy()
 
     # Calculate flip pts
     pts = [W_hm, 0] + pts*[-1, 1]
+    # Rearrange pts
+    pts = np.concatenate((pts[5::-1], pts[6:10], pts[15:9:-1])).copy()
     return img, heatmaps, pts
 
 def random_scale(img, heatmaps, pts):
@@ -97,6 +101,8 @@ def random_scale(img, heatmaps, pts):
     :param heatmaps: shape(16,64,64), np array
     :param pts: shape(16,2), np array, same resolu as heatmaps
     :return: same as input
+
+    rand scale now in the crop function
     '''
 
     scale = np.random.uniform(low=0.5, high=1.0)
@@ -132,3 +138,5 @@ def random_scale(img, heatmaps, pts):
 
 
 #==================== Test ====================
+if __name__ == '__main__':
+    pass
