@@ -1,94 +1,59 @@
-import tensorflow as tf
 import numpy as np
+import torch
+import torch.utils.data as datatorch
+import skimage
 import matplotlib.pyplot as plt
+import cv2
 import json
-from utils import imgutils
-import os
 
 from utils import imgutils
-from utils import imgutilsTF
-from utils import Dataset_Make_Utils as dsmutils
+from utils import modelutils
+from datasets.dataset_torch_new import DatasetTorch
 
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 
-# Get json annotation
-with open('mpii_annotations.json') as anno_file:
-    anno = json.load(anno_file)  # len 25204
-print(len(anno))
+#==================== Test ====================
+# if __name__ == '__main__':
+#     # ==================== Test of dataset====================
+#     ds_torch = DatasetTorch()
+#     data_loader = datatorch.DataLoader(ds_torch, batch_size=1, shuffle=False)
+#     for step, (img, heatmaps, pts) in enumerate(data_loader):
+#         print('img is TENSOR', torch.is_tensor(img))  # True
+#         print('heatmaps is TENSOR', torch.is_tensor(heatmaps))  # True
+#         # print('img', img)
+#         # print('heatmaps', heatmaps)
+#         print('img.SHAPE', img.shape)  # [1,3,256,256]
+#         print('heatmaps.SHAPE', heatmaps.shape)  # [1,16,64,64]
+#
+#         # ====== Show img and heatmaps ======
+#         img_np = torch.squeeze(img, 0).numpy()  # (C,H,W)
+#         heatmaps_np = torch.squeeze(heatmaps, 0).numpy()
+#         # print('img_np', img_np.shape)
+#         # print('heatmaps_np', heatmaps_np.shape)
+#         img_np = np.swapaxes(np.swapaxes(img_np, 0, 2), 0, 1)
+#         heatmaps_np = np.swapaxes(np.swapaxes(heatmaps_np, 0, 2), 0, 1)
+#         print('img_np', img_np.shape)
+#         print('heatmaps_np', heatmaps_np.shape)
+#
+#         imgutils.show_heatmaps(img_np, heatmaps_np)
+#         joint_pts = modelutils.heatmaps_to_coords(heatmaps_np, resolu_out=[64,64], prob_threshold=0.0)
+#         img_np = skimage.transform.resize(img_np, [64,64])
+#         imgutils.show_stack_joints(img_np, joint_pts, c=[0, 0])
+#         pass
 
-train_list, valid_list = [], []
-for idx, ele_anno in enumerate(anno):
-    if ele_anno['isValidation'] == True:
-        valid_list.append(idx)
-    else:
-        train_list.append(idx)
-print('train LEN:', len(train_list))  #22246
-print('valid LEN:', len(valid_list))  #2958
+if __name__ == '__main__':
+    # ========== Test dataset ==========
+    ds_torch = DatasetTorch(use_flip=True)
+    data_loader = datatorch.DataLoader(ds_torch, batch_size=1, shuffle=False)
+    for step, (img, heatmaps, pts) in enumerate(data_loader):
+        # print('img', img.shape)
+        # print('heatmaps', heatmaps.shape)
+        # print('pts', pts.shape)
 
-res_img = [256, 256]
-res_heatmap = [64, 64]
-num_heatmap = 16
-# train_imgs = np.zeros((len(train_list), res_img[0], res_img[1], 3))  #(N,H_im,W_im,3)
-# train_heatmaps = np.zeros((len(train_list), res_heatmap[0], res_heatmap[1], num_heatmap))  #(N,H_ht,W_ht,16)
-# valid_imgs = np.zeros((len(valid_list), res_img[0], res_img[1], 3))  #(N,H_im,W_im,3)
-# valid_heatmapss = np.zeros((len(valid_list), res_heatmap[0], res_heatmap[1], num_heatmap))  #(N,H_ht,W_ht,16)
-# print('train_imgs.SHAPE', train_imgs.shape)
-# print('train_heatmaps.SHAPE', train_heatmaps.shape)
-# print('valid_imgs.SHAPE', valid_imgs.shape)
-# print('valid_heatmapss.SHAPE', valid_heatmapss.shape)
+        img = np.transpose(img.squeeze().detach().numpy(), (1, 2, 0))
+        # img = np.fliplr(img)
+        heatmaps = np.transpose(heatmaps.squeeze().detach().numpy(), (1, 2, 0))
+        pts = pts.squeeze().detach().numpy()
+        print(pts)
+        imgutils.show_heatmaps(img, heatmaps)
 
-
-train_imgs = np.zeros((1000, res_img[0], res_img[1], 3))  #(N,H_im,W_im,3)
-path_img_folder = 'mpii_human_pose_v1/images'
-
-num_subset = 5  # from 1 to 22
-
-idx_begin = 1000*(num_subset-1)
-idx_end = idx_begin+999
-j = 0
-for i, idx_train in enumerate(train_list):
-    if i >= idx_begin and i <= idx_end:
-        j += 1
-        print(anno[idx_train])
-        ele_anno = anno[idx_train]
-        path_img = os.path.join(path_img_folder, ele_anno['img_paths'])
-        print(path_img)
-        img_origin = imgutils.load_image(path_img)
-        # plt.figure(1)
-        # plt.imshow(img_origin)
-        # plt.show()
-        img_crop, ary_pts_crop, c_crop = imgutils.crop(img_origin, ele_anno)
-        img_out, pts_out, c_out = imgutils.change_resolu(img_crop, ary_pts_crop, c_crop, res_img)
-        # plt.figure(1)
-        # plt.imshow(img_out)
-        # plt.show()
-        train_imgs[j-1, ...] = img_out
-        # plt.figure(1)
-        # plt.imshow(train_imgs[i])
-        # plt.show()
-        print('1000 /', j)
-    # print(anno[idx_train])
-    # ele_anno = anno[idx_train]
-    # path_img = os.path.join(path_img_folder, ele_anno['img_paths'])
-    # print(path_img)
-    # img_origin = imgutils.load_image(path_img)
-    # # plt.figure(1)
-    # # plt.imshow(img_origin)
-    # # plt.show()
-    # img_crop, ary_pts_crop, c_crop = imgutils.crop(img_origin, ele_anno)
-    # img_out, pts_out, c_out = imgutils.change_resolu(img_crop, ary_pts_crop, c_crop, res_img)
-    # # plt.figure(1)
-    # # plt.imshow(img_out)
-    # # plt.show()
-    # train_imgs[i, ...] = img_out
-    # # plt.figure(1)
-    # # plt.imshow(train_imgs[i])
-    # # plt.show()
-    # print('22246 /', i)
-
-
-# Save train_imgs
-name_file = 'datasets/np__train_imgs_'+str(num_subset)
-np.save(name_file, train_imgs)
-print('=====================================DONE=========================================')
