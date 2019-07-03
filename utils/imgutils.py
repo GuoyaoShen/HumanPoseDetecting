@@ -180,7 +180,7 @@ def random_rotate(img, resolu_out=(256,256)):
     img_rot = skimage.transform.resize(img_rot, resolu_out)
     return img_rot
 
-def show_stack_joints(img, pts, c=[0, 0]):
+def show_stack_joints(img, pts, c=[0, 0], draw_lines=False):
     '''
     :param img: np array, (H,W,C)
     :param pts: same resolu as img, joint points, np array (16,3)
@@ -188,7 +188,25 @@ def show_stack_joints(img, pts, c=[0, 0]):
     '''
     # In case pts is not np array
     pts = np.array(pts)
-
+    dict_style = {
+        0: 'origin img',
+        1: ['left ankle', 'b', 'x'],
+        2: ['left knee', 'b', '^'],
+        3: ['left hip', 'b', 'o'],
+        4: ['right hip', 'r', 'o'],
+        5: ['right knee', 'r', '^'],
+        6: ['right ankle', 'r', 'x'],
+        7: ['belly', 'y', 'o'],
+        8: ['chest', 'y', 'o'],
+        9: ['neck', 'y', 'o'],
+        10: ['head', 'y', '*'],
+        11: ['left wrist', 'b', 'x'],
+        12: ['left elbow', 'b', '^'],
+        13: ['left shoulder', 'b', 'o'],
+        14: ['right shoulder', 'r', 'o'],
+        15: ['right elbow', 'r', '^'],
+        16: ['right wrist', 'r', 'x']
+    }
     plt.figure(1)
     plt.imshow(img)
     list_pt_H, list_pt_W = [], []
@@ -198,8 +216,22 @@ def show_stack_joints(img, pts, c=[0, 0]):
         list_pt_H.append(pts[i, 1])  # y axis
     list_pt_cW.append(c[0])
     list_pt_cH.append(c[1])
-    plt.scatter(list_pt_W, list_pt_H, color='r', marker='o')
+    for i in range(pts.shape[0]):
+        plt.scatter(list_pt_W[i], list_pt_H[i], color=dict_style[i+1][1], marker=dict_style[i+1][2])
     plt.scatter(list_pt_cW, list_pt_cH, color='b', marker='*')
+    if draw_lines:
+        # Body
+        plt.plot(list_pt_W[6:10], list_pt_H[6:10], color='y', linewidth=2)
+        plt.plot(list_pt_W[2:4], list_pt_H[2:4], color='y', linewidth=2)
+        plt.plot(list_pt_W[12:14], list_pt_H[12:14], color='y', linewidth=2)
+        # Left arm
+        plt.plot(list_pt_W[10:13], list_pt_H[10:13], color='b', linewidth=2)
+        # Right arm
+        plt.plot(list_pt_W[13:16], list_pt_H[13:16], color='r', linewidth=2)
+        # Left leg
+        plt.plot(list_pt_W[0:3], list_pt_H[0:3], color='b', linewidth=2)
+        # Right leg
+        plt.plot(list_pt_W[3:6], list_pt_H[3:6], color='r', linewidth=2)
     plt.axis('off')
     plt.show()
     pass
