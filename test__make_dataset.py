@@ -43,10 +43,10 @@ import os
 
 if __name__ == '__main__':
     # ========== Test dataset ==========
-    ds_torch = DatasetTorch(use_flip=True)
+    ds_torch = DatasetTorch(use_flip=True, use_rand_color=True)
     data_loader = datatorch.DataLoader(ds_torch, batch_size=1, shuffle=False)
     for step, (img, heatmaps, pts) in enumerate(data_loader):
-        # print('img', img.shape)
+        print('img', img)
         # print('heatmaps', heatmaps.shape)
         # print('pts', pts.shape)
 
@@ -54,6 +54,7 @@ if __name__ == '__main__':
         # img = np.fliplr(img)
         heatmaps = np.transpose(heatmaps.squeeze().detach().numpy(), (1, 2, 0))
         pts = pts.squeeze().detach().numpy()
-        print(pts)
+        print('pts', pts)
+        print('===========================================================')
         imgutils.show_heatmaps(img, heatmaps)
 
