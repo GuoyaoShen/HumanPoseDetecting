@@ -43,10 +43,10 @@ def generate_heatmaps(img, pts, sigma=(33,33), sigma_valu=7):
         if pt[0] == 0 and pt[1] == 0:
             continue
         # Filter some points out of the image
-        if pt[0] > W:
-            pt[0] = W
-        if pt[1] > H:
-            pt[1] = H
+        if pt[0] >= W:
+            pt[0] = W-1
+        if pt[1] >= H:
+            pt[1] = H-1
         heatmap = heatmaps[:, :, i]
         heatmap[int(pt[1])][int(pt[0])] = 1
         # heatmap = cv2.GaussianBlur(heatmap, sigma, 0)  #(H,W,1) -> (H,W)
@@ -182,7 +182,7 @@ def random_rotate(img, resolu_out=(256,256)):
     img_rot = skimage.transform.resize(img_rot, resolu_out)
     return img_rot
 
-def show_stack_joints(img, pts, c=[0, 0], draw_lines=False):
+def show_stack_joints(img, pts, c=[0, 0], draw_lines=False, num_fig=1):
     '''
     :param img: np array, (H,W,C)
     :param pts: same resolu as img, joint points, np array (16,3)
@@ -209,7 +209,7 @@ def show_stack_joints(img, pts, c=[0, 0], draw_lines=False):
         15: ['right elbow', 'r', '^'],
         16: ['right wrist', 'r', 'x']
     }
-    plt.figure(1)
+    plt.figure(num_fig)
     plt.imshow(img)
     list_pt_H, list_pt_W = [], []
     list_pt_cH, list_pt_cW = [], []
@@ -238,7 +238,7 @@ def show_stack_joints(img, pts, c=[0, 0], draw_lines=False):
     plt.show()
     pass
 
-def show_heatmaps(img, heatmaps, c=np.zeros((2))):
+def show_heatmaps(img, heatmaps, c=np.zeros((2)), num_fig=1):
     '''
     :param img: np array (H,W,3)
     :param heatmaps: np array (H,W,num_pts)
@@ -269,7 +269,7 @@ def show_heatmaps(img, heatmaps, c=np.zeros((2))):
         heatmaps = skimage.transform.resize(heatmaps, (H, W))
 
     heatmap_c = generate_heatmap(np.zeros((H, W)), c, (91, 91))
-    plt.figure(1)
+    plt.figure(num_fig)
     for i in range(heatmaps.shape[2] + 1):
         plt.subplot(4, 5, i + 1)
         plt.title(dict_name[i])
