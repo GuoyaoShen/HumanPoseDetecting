@@ -16,14 +16,14 @@ from utils import modelutils
 import os
 
 class DatasetTorch(datatorch.Dataset):
-    def __init__(self, is_train=True, use_flip=False, use_rand_scale=False):
+    def __init__(self, is_train=True, use_flip=False, use_rand_scale=False, use_rand_color=False):
         self.is_trian = is_train
         self.use_flip = use_flip
         self.use_rand_scale = use_rand_scale
+        self.use_rand_color = use_rand_color
         # Get json annotation
         with open('mpii_annotations.json') as anno_file:
             self.anno = json.load(anno_file)  # len 25204
-            # print('anno', len(self.anno))
 
         self.train_list, self.valid_list = [], []  # 22246, 2958
         for idex, ele_anno in enumerate(self.anno):
@@ -37,8 +37,8 @@ class DatasetTorch(datatorch.Dataset):
             ele_anno = self.anno[self.train_list[idx]]
         else:
             ele_anno = self.anno[self.valid_list[idx]]
-        res_img = [256,256]
-        res_heatmap = [64,64]
+        res_img = [256, 256]
+        res_heatmap = [64, 64]
         path_img_folder = 'mpii_human_pose_v1/images'
         path_img = os.path.join(path_img_folder, ele_anno['img_paths'])
         img_origin = imgutils.load_image(path_img)
@@ -47,7 +47,7 @@ class DatasetTorch(datatorch.Dataset):
 
         train_img = skimage.transform.resize(img_crop, tuple(res_img))
         train_heatmap = imgutils.generate_heatmaps(img_out, pts_out, sigma_valu=1)
-        train_pts = pts_out[:, :2].astype(np.int32) - np.ones((16, 2))
+        train_pts = pts_out[:, :2].astype(np.int32)
 
         # (H,W,C) -> (C,H,W)
         train_img = np.transpose(train_img, (2, 0, 1))
@@ -57,8 +57,9 @@ class DatasetTorch(datatorch.Dataset):
             train_img, train_heatmap, train_pts = random_flip_LR(train_img, train_heatmap, train_pts)
         if self.use_rand_scale:
             train_img, train_heatmap, train_pts = random_scale(train_img, train_heatmap, train_pts)
+        if self.use_rand_color:
+            train_img = rand_color(train_img)
         return train_img, train_heatmap, train_pts
-        # return np.zeros((3, 256, 256)), np.zeros((16, 64, 64)), train_pts
 
     def __len__(self):
         if self.is_trian:
@@ -78,7 +79,7 @@ def random_flip_LR(img, heatmaps, pts):
     H_img, W_img = img.shape[1], img.shape[2]
     H_hm, W_hm = heatmaps.shape[1], heatmaps.shape[2]
     flip = np.random.random() > 0.5
-    flip = True
+    # flip = True
     # print('FLIP:', flip)
     if not flip:
         return img, heatmaps, pts
@@ -89,11 +90,22 @@ def random_flip_LR(img, heatmaps, pts):
     # Rearrange heatmaps
     heatmaps = np.concatenate((heatmaps[5::-1], heatmaps[6:10], heatmaps[15:9:-1])).copy()
 
-    # Calculate flip pts
-    pts = [W_hm, 0] + pts*[-1, 1]
+    # Calculate flip pts, remember to filter [0,0] which is no available heatmap
+    pts = np.where(pts == [0, 0], pts, [W_hm, 0] + pts*[-1, 1])
+
     # Rearrange pts
     pts = np.concatenate((pts[5::-1], pts[6:10], pts[15:9:-1])).copy()
     return img, heatmaps, pts
+
+def rand_color(img):
+    '''
+    :param img: only 1 img, shape(3,256,256), np array
+    :return: shape(3,256,256), np array, with color rand changed
+    '''
+    img[0] *= np.clip(np.random.uniform(low=0.8, high=1.2), 0., 1.)
+    img[1] *= np.clip(np.random.uniform(low=0.8, high=1.2), 0., 1.)
+    img[2] *= np.clip(np.random.uniform(low=0.8, high=1.2), 0., 1.)
+    return img
 
 def random_scale(img, heatmaps, pts):
     '''
@@ -102,7 +114,7 @@ def random_scale(img, heatmaps, pts):
     :param pts: shape(16,2), np array, same resolu as heatmaps
     :return: same as input
 
-    rand scale now in the crop function
+    Obsolete, rand scale now in the crop function
     '''
 
     scale = np.random.uniform(low=0.5, high=1.0)
