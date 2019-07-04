@@ -20,7 +20,7 @@ def generate_heatmap(heatmap, pt, sigma=(33,33), sigma_valu=7):
 
     This function is obsolete, use 'generate_heatmaps()' instead.
     '''
-    heatmap[int(pt[1])-1][int(pt[0])-1] = 1
+    heatmap[int(pt[1])][int(pt[0])] = 1
     # heatmap = cv2.GaussianBlur(heatmap, sigma, 0)  #(H,W,1) -> (H,W)
     heatmap = skimage.filters.gaussian(heatmap, sigma=sigma_valu)  ##(H,W,1) -> (H,W)
     am = np.amax(heatmap)
@@ -39,13 +39,16 @@ def generate_heatmaps(img, pts, sigma=(33,33), sigma_valu=7):
     num_pts = pts.shape[0]
     heatmaps = np.zeros((H, W, num_pts))
     for i, pt in enumerate(pts):
+        # Filter unavailable heatmaps
+        if pt[0] == 0 and pt[1] == 0:
+            continue
         # Filter some points out of the image
         if pt[0] > W:
             pt[0] = W
         if pt[1] > H:
             pt[1] = H
-        heatmap = heatmaps[:,:,i]
-        heatmap[int(pt[1])-1][int(pt[0])-1] = 1
+        heatmap = heatmaps[:, :, i]
+        heatmap[int(pt[1])][int(pt[0])] = 1
         # heatmap = cv2.GaussianBlur(heatmap, sigma, 0)  #(H,W,1) -> (H,W)
         heatmap = skimage.filters.gaussian(heatmap, sigma=sigma_valu)  ##(H,W,1) -> (H,W)
         am = np.amax(heatmap)
@@ -104,7 +107,7 @@ def crop_norescale(img, ele_anno, use_randscale=True):
         c[1] = c[1] + 15 * s
         s = s * 1.25
     ary_pts = np.array(ele_anno['joint_self'])  # (16, 3)
-    ary_pts_temp = ary_pts[np.any(ary_pts > [0, 0, 0], axis=1)]
+    ary_pts_temp = ary_pts[np.any(ary_pts != [0, 0, 0], axis=1)]
 
     if use_randscale:
         scale_rand = np.random.uniform(low=1.0, high=3.0)
@@ -128,7 +131,7 @@ def crop_norescale(img, ele_anno, use_randscale=True):
     H_high = min((H_max + pad_updown), H)
 
     # Update joint points and center
-    ary_pts_crop = ary_pts - np.array([W_low, H_low, 0])
+    ary_pts_crop = np.where(ary_pts == [0, 0, 0], ary_pts, ary_pts - np.array([W_low, H_low, 0]))
     c_crop = c - np.array([W_low, H_low])
 
     img_crop = img[int(H_low):int(H_high), int(W_low):int(W_high), :]
@@ -140,8 +143,7 @@ def crop_norescale(img, ele_anno, use_randscale=True):
     pad_leftright_new = int((window_len_new - W_new)/2)
 
     # ReUpdate joint points and center (because of the padding)
-    ary_pts_crop = ary_pts_crop + np.array([pad_leftright_new, pad_updown_new, 0])
-    ary_pts_crop[np.any(ary_pts_crop < [0, 0, 0], axis=1)] = [0, 0, 0]
+    ary_pts_crop = np.where(ary_pts_crop == [0, 0, 0], ary_pts_crop, ary_pts_crop + np.array([pad_leftright_new, pad_updown_new, 0]))
     c_crop = c_crop + np.array([pad_leftright_new, pad_updown_new])
 
     img_crop = cv2.copyMakeBorder(img_crop, pad_updown_new, pad_updown_new, pad_leftright_new, pad_leftright_new, cv2.BORDER_CONSTANT, value=0)
