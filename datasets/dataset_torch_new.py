@@ -16,11 +16,12 @@ from utils import modelutils
 import os
 
 class DatasetTorch(datatorch.Dataset):
-    def __init__(self, is_train=True, use_flip=False, use_rand_scale=False, use_rand_color=False):
+    def __init__(self, is_train=True, use_flip=False, use_rand_scale=False, use_rand_color=False, sigma=2):
         self.is_trian = is_train
         self.use_flip = use_flip
         self.use_rand_scale = use_rand_scale
         self.use_rand_color = use_rand_color
+        self.sigma = sigma
         # Get json annotation
         with open('mpii_annotations.json') as anno_file:
             self.anno = json.load(anno_file)  # len 25204
@@ -46,7 +47,7 @@ class DatasetTorch(datatorch.Dataset):
         img_out, pts_out, c_out = imgutils.change_resolu(img_crop, ary_pts_crop, c_crop, res_heatmap)
 
         train_img = skimage.transform.resize(img_crop, tuple(res_img))
-        train_heatmap = imgutils.generate_heatmaps(img_out, pts_out, sigma_valu=1)
+        train_heatmap = imgutils.generate_heatmaps(img_out, pts_out, sigma_valu=self.sigma)
         train_pts = pts_out[:, :2].astype(np.int32)
 
         # (H,W,C) -> (C,H,W)
