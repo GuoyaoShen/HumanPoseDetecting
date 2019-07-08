@@ -82,7 +82,7 @@ for i in range(num_epoch):
         # if step > 5:
         #     break
 
-        if (step % 200 == 0) and (step > 0):
+        if (step % 700 == 0) and (step > 0):
             # # ================================== Save model every 200 step ==================================
             # suffix_epoch = i + 1
             # suffix_step = step + 1
