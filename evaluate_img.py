@@ -28,26 +28,39 @@ os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 num_img = 6
 path_testimg = 'test_imgs/'+str(num_img)+'.jpg'
 img_np = imgutils.load_image(path_testimg)
-print('img_np.HAPE', img_np.shape)
+print('img_np.SAPE', img_np.shape)
 
 # Resize to (256,256,3)
 img_np = skimage.transform.resize(img_np, [256,256])
 img_np_copy = img_np
-print('img_np.HAPE', img_np.shape)
+print('img_np.SAPE', img_np.shape)
 
 
 # plt.figure(1)
 # plt.imshow(img_np_copy)
 # plt.show()
 
-# ================================== Load the model ==================================
-num_subset = '4000(1)_4layers'
-net_hg_torch = hg_torch(num_stacks=4, num_blocks=1, num_classes=16)
-path_model_torch_load = 'models/modelparams_hg_torch_' + str(num_subset) + '.pkl'
-# net_hg_torch.load_state_dict(torch.load(path_model_torch_load), strict=False)
-net_hg_torch.load_state_dict(torch.load(path_model_torch_load))
+# # ================================== Load the model ==================================
+# num_subset = 'allEPOCH2'
+# net_hg_torch = hg_torch(num_stacks=8, num_blocks=1, num_classes=16)
+# path_model_torch_load = 'models/modelparams_hg_torch_' + str(num_subset) + '.pkl'
+# # net_hg_torch.load_state_dict(torch.load(path_model_torch_load), strict=False)
+# net_hg_torch.load_state_dict(torch.load(path_model_torch_load))
+# net_hg_torch.eval()
+# print('===============MODEL LOADED===============')
+
+# ================================== Load the checkpoint ==================================
+suffix = 'EPOCH5STEP600'  # saved suffix to load  # 4，900   5，300
+path_ckpt_torch = 'models/ckpt_hg_torch_' + str(suffix) + '.tar'
+checkpoint = torch.load(path_ckpt_torch)
+print('===============CHECKPOINT LOADED===============')
+
+net_hg_torch = hg_torch(num_stacks=8, num_blocks=1, num_classes=16)
+net_hg_torch.load_state_dict(checkpoint['model_state_dict'])
+print('Reconstruct Model DONE')
+
 net_hg_torch.eval()
-print('===============MODEL LOADED===============')
+
 
 
 # ================================== Get heatmaps ==================================
@@ -72,13 +85,13 @@ imgutils.show_heatmaps(img_np_copy, heatmaps_pred_eg_np)
 
 # Stack points
 coord_joints = modelutils.heatmaps_to_coords(heatmaps_pred_eg_np, resolu_out=[256,256], prob_threshold=0.1)
-imgutils.show_stack_joints(img_np_copy, coord_joints)
+imgutils.show_stack_joints(img_np_copy, coord_joints, draw_lines=True)
 
 
 
 #========================================================== TEST BY DATASET ==========================================================
-# num_subset = 5  # 1-22
-# num_instance = 145  # 0-999   256
+# num_subset = 1  # 1-22
+# num_instance = 277 # 0-999   256
 #
 # name_file_img = 'datasets/np__train_imgs_' + str(num_subset) + '.npy'
 # name_file_heatmap = 'datasets/np__train_heatmaps_' + str(num_subset) + '.npy'
@@ -102,8 +115,8 @@ imgutils.show_stack_joints(img_np_copy, coord_joints)
 # # plt.show()
 #
 # # ================================== Load the model ==================================
-# num_subset = '4000(1)_4layers'
-# net_hg_torch = hg_torch(num_stacks=4, num_blocks=1, num_classes=16)
+# num_subset = 'allEPOCH2'
+# net_hg_torch = hg_torch(num_stacks=1, num_blocks=1, num_classes=16)
 # path_model_torch_load = 'models/modelparams_hg_torch_' + str(num_subset) + '.pkl'
 # # net_hg_torch.load_state_dict(torch.load(path_model_torch_load), strict=False)
 # net_hg_torch.load_state_dict(torch.load(path_model_torch_load))
