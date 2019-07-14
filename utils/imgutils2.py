@@ -120,7 +120,7 @@ def crop_norescale(img, ele_anno, use_randscale=True, use_randflipLR=False):
 
     if use_randflipLR:
         flip = np.random.random() > 0.5
-        print('flip:', flip)
+        # print('flip:', flip)
         if flip:
             # (H,W,C)
             img_crop = np.flip(img_crop, 1)
