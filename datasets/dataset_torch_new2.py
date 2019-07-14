@@ -16,10 +16,9 @@ from utils import modelutils
 import os
 
 class DatasetTorch(datatorch.Dataset):
-    def __init__(self, is_train=True, use_flip=False, use_rand_scale=False, use_rand_color=False, use_randflipLR_inner=False):
+    def __init__(self, is_train=True, use_flip=False, use_rand_color=False, use_randflipLR_inner=False):
         self.is_trian = is_train
         self.use_flip = use_flip
-        self.use_rand_scale = use_rand_scale
         self.use_rand_color = use_rand_color
         self.use_randflipLR_inner = use_randflipLR_inner
         # Get json annotation
@@ -61,8 +60,6 @@ class DatasetTorch(datatorch.Dataset):
 
         if self.use_flip:
             train_img, train_heatmap, train_pts = random_flip_LR(train_img, train_heatmap, train_pts)
-        if self.use_rand_scale:
-            train_img, train_heatmap, train_pts = random_scale(train_img, train_heatmap, train_pts)
         if self.use_rand_color:
             train_img = rand_color(train_img)
         return train_img, train_heatmap, train_pts
@@ -112,44 +109,3 @@ def rand_color(img):
     img[1] *= np.clip(np.random.uniform(low=0.8, high=1.2), 0., 1.)
     img[2] *= np.clip(np.random.uniform(low=0.8, high=1.2), 0., 1.)
     return img
-
-def random_scale(img, heatmaps, pts):
-    '''
-    :param img: only 1 img, shape(3,256,256), np array
-    :param heatmaps: shape(16,64,64), np array
-    :param pts: shape(16,2), np array, same resolu as heatmaps
-    :return: same as input
-
-    Obsolete, rand scale now in the crop function
-    '''
-
-    scale = np.random.uniform(low=0.5, high=1.0)
-    H_img, W_img = img.shape[1], img.shape[2]
-    H_hm, W_hm = heatmaps.shape[1], heatmaps.shape[2]
-
-    # (C,H,W) -> (H,W,C)
-    img = np.swapaxes(np.swapaxes(img, 0, 2), 0, 1)
-    heatmaps = np.swapaxes(np.swapaxes(heatmaps, 0, 2), 0, 1)
-
-    img = skimage.transform.rescale(img, [scale, scale], multichannel=3)
-    heatmaps = skimage.transform.rescale(heatmaps, [scale, scale], multichannel=16)
-    H_img_new, W_img_new = img.shape[0], img.shape[1]
-    H_hm_new, W_hm_new = heatmaps.shape[0], heatmaps.shape[1]
-    pad_leftright_img, pad_updown_img = int((W_img - W_img_new)/2), int((H_img - H_img_new)/2)
-    pad_leftright_hm, pad_updown_hm = int((W_hm - W_hm_new)/2), int((H_hm - H_hm_new)/2)
-    img = cv2.copyMakeBorder(img, pad_updown_img, pad_updown_img, pad_leftright_img, pad_leftright_img,
-                                  cv2.BORDER_CONSTANT, value=0)
-    heatmaps = cv2.copyMakeBorder(heatmaps, pad_updown_hm, pad_updown_hm, pad_leftright_hm, pad_leftright_hm,
-                                  cv2.BORDER_CONSTANT, value=0)
-    # resize again to guarantee (256,256) & (64,64)
-    img = skimage.transform.resize(img, tuple([H_img, W_img]))
-    heatmaps = skimage.transform.resize(heatmaps, tuple([H_hm, W_hm]))
-
-    # (H,W,C) -> (C,H,W)
-    img = np.swapaxes(np.swapaxes(img, 0, 2), 1, 2)
-    heatmaps = np.swapaxes(np.swapaxes(heatmaps, 0, 2), 1, 2)
-
-    # Calculate flip pts
-    pts = pts*scale + [pad_leftright_hm, pad_updown_hm]
-
-    return img, heatmaps, pts
