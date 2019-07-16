@@ -221,11 +221,19 @@ def show_stack_joints(img, pts, c=[0, 0], draw_lines=False, num_fig=1):
     for i in range(pts.shape[0]):
         plt.scatter(list_pt_W[i], list_pt_H[i], color=dict_style[i+1][1], marker=dict_style[i+1][2])
     plt.scatter(list_pt_cW, list_pt_cH, color='b', marker='*')
+
+    # Filter unavailable points
+    for i in range(pts.shape[0]):
+        if list_pt_W[i] == 0 and list_pt_H[i] == 0:
+
+            list_pt_W[i] = None
+            list_pt_H[i] = None
+
     if draw_lines:
         # Body
-        plt.plot(list_pt_W[6:10], list_pt_H[6:10], color='y', linewidth=2)
-        plt.plot(list_pt_W[2:4], list_pt_H[2:4], color='y', linewidth=2)
-        plt.plot(list_pt_W[12:14], list_pt_H[12:14], color='y', linewidth=2)
+        plt.plot(list_pt_W[6:10], list_pt_H[6:10], color='g', linewidth=2)
+        plt.plot(list_pt_W[2:4], list_pt_H[2:4], color='g', linewidth=2)
+        plt.plot(list_pt_W[12:14], list_pt_H[12:14], color='g', linewidth=2)
         # Left arm
         plt.plot(list_pt_W[10:13], list_pt_H[10:13], color='b', linewidth=2)
         # Right arm
